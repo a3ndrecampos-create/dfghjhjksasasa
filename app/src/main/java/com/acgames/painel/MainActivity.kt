@@ -9,6 +9,8 @@ import android.os.SystemClock
 import android.util.Base64
 import android.view.View
 import android.view.inputmethod.InputMethodManager
+import android.webkit.JsResult
+import android.webkit.WebChromeClient
 import android.webkit.WebResourceError
 import android.webkit.WebResourceRequest
 import android.webkit.WebSettings
@@ -19,6 +21,7 @@ import android.widget.EditText
 import android.widget.ProgressBar
 import android.widget.TextView
 import androidx.activity.OnBackPressedCallback
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import java.security.MessageDigest
 import java.security.SecureRandom
@@ -105,6 +108,28 @@ class MainActivity : AppCompatActivity() {
             mediaPlaybackRequiresUserGesture = false // deixa o "som" de nova mensagem tocar
             cacheMode = WebSettings.LOAD_DEFAULT
             setSupportZoom(false)
+        }
+        // O painel usa alert() e confirm() (Confirmar/Cancelar pagamento, Revogar, mensagens de erro).
+        // O WebView não mostra essas caixas sozinho: sem isto o confirm() responde "não" e o alert() some.
+        web.webChromeClient = object : WebChromeClient() {
+            override fun onJsAlert(view: WebView, url: String?, message: String?, result: JsResult): Boolean {
+                AlertDialog.Builder(this@MainActivity)
+                    .setMessage(message)
+                    .setPositiveButton("OK") { _, _ -> result.confirm() }
+                    .setOnCancelListener { result.cancel() }
+                    .show()
+                return true
+            }
+
+            override fun onJsConfirm(view: WebView, url: String?, message: String?, result: JsResult): Boolean {
+                AlertDialog.Builder(this@MainActivity)
+                    .setMessage(message)
+                    .setPositiveButton("OK") { _, _ -> result.confirm() }
+                    .setNegativeButton("Cancelar") { _, _ -> result.cancel() }
+                    .setOnCancelListener { result.cancel() }
+                    .show()
+                return true
+            }
         }
         web.webViewClient = object : WebViewClient() {
             override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest): Boolean {
